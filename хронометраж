@@ -1,0 +1,373 @@
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <algorithm>
+#include <conio.h>
+#include <Windows.h> //для русских букв
+
+using namespace std;
+
+void diagramma(HANDLE hConsole, HWND hcon, PWINDOWINFO pgwi,int arr[4])
+{
+	int k = 4;
+	HDC hdc = GetDC(hcon);
+	SetConsoleTextAttribute(hConsole, FOREGROUND_GREEN);
+	system("cls");
+	HPEN hWhitePen = CreatePen(PS_SOLID, 1, RGB(255, 255, 255)); // для рисования линий
+	HBRUSH hBlackBrush = CreateSolidBrush(RGB(0, 0, 0));		 // для заполнения фигур
+	HPEN hcp = (HPEN)SelectObject(hdc, hWhitePen);
+	int osn = (pgwi->rcClient.bottom - pgwi->rcClient.top - 50);
+	MoveToEx(hdc, 100, osn, NULL);	// перемещение курсора
+	LineTo(hdc, 100 + k * 35, osn);
+	RECT r;
+	for (int i = 0; i < k; i++)		// здесь должны быть расчеты 
+	{                               // для круговой диаграммы используем другие функции рисования
+		int ran = 300 - (arr[i]*35);
+		r.left = 100 + i * 35;
+		r.top = osn - 300 + ran;
+		r.right = 100 + (i + 1) * 35 - 10;
+		r.bottom = osn;
+		HBRUSH hBrush = CreateSolidBrush(RGB(i * 10 + 100, i * 20 + 50, i * 30 + 100));
+		FillRect(hdc, &r, hBrush);
+		DeleteObject(hBrush);
+	}
+	TextOutW(hdc, 150 + k * 35, 50, L"ДИАГРАММА", 10);
+	_getch();
+	//Sleep(5000);
+	system("pause");
+	r.left = 0;
+	r.top = 0;
+	r.right = pgwi->rcClient.bottom;
+	r.bottom = pgwi->rcClient.right;
+	FillRect(hdc, &r, hBlackBrush);
+	DeleteObject(hWhitePen);
+	DeleteObject(hBlackBrush);
+}
+// Структура база пользаков
+struct UserDb {
+	string id; // ID
+	string name; // Имя клинта в проге
+	string real_name; // реальное имя   
+	// string type;
+	string IC;// Иноформационная система    
+	int year;// год
+	string organizacia;// организация
+	//string phone;// телефон
+	//string mail;// мылол
+};
+//Выводит одного пользака
+//void printUser(UserDb User) {
+//	cout << "ай ди / id: " << User.id << endl;
+//	cout << "Имя в проге: " << User.name << endl;
+//	cout << "Реальное имя: " << User.real_name << endl;
+//	//  cout << "License plate: " << car.licensePlate << endl;
+//	  //cout << "Owner: " << car.ownerLastName << " " << car.ownerFirstName << " " << car.ownerMiddleName << endl;
+//}
+//// Выводит несколько пользаков
+//void printUsers(vector<UserDb> Users) {
+//	for (auto User : Users) {
+//		printUser(User);
+//		cout << endl;
+//	}
+//}
+void displayUsers(vector<UserDb> Users) {
+	cout << "Список пользователей:" << endl;
+	for (int i = 0; i < Users.size(); i++) {
+		cout << "Id: " << Users[i].id << endl;
+		cout << "Имя: " << Users[i].name << endl;
+		cout << "Реальное имя: " << Users[i].real_name << endl;
+		cout << "ИС: " << Users[i].IC << endl;
+		cout << "Год: " << Users[i].year << endl;
+		cout << "Организация: " << Users[i].organizacia << endl;
+		cout << endl;
+		if (i % 4 == 0) {
+			_getch();
+		}
+	}
+	cout << "Нажмите любую клавишу для продолжения..." << endl;
+	_getch(); // ждем нажатия клавиши
+	system("cls"); // очищаем консоль
+}
+
+int equal(vector<UserDb> Users, string IC_name) {
+		int count = 0;
+		/*int i;*/
+		for (int i = 0; i < Users.size(); i++) {
+			if (Users[i].IC == IC_name) {
+				count++;
+			}
+		}
+		return count;
+	}
+
+void writeUsersToFile(vector<UserDb> users, string filename) {
+	ofstream file(filename);
+	if (!file.is_open()) {
+		cout << "Error opening file " << filename << endl;
+		return;
+	}
+	for (auto user : users) {
+		cout << "Ввведите данные " << endl;
+		file << user.id << " " << user.name << " " << user.real_name << " " << user.IC << " " << user.year << " " << user.organizacia << endl;
+	}
+	file.close();
+}
+// Берет и читает файл
+vector<UserDb> readUsersFromFile(string filename) {
+	vector<UserDb> Users; //
+	ifstream file(filename);
+	if (!file.is_open()) {
+		cout << "Ошибка файл не открывается  " << filename << endl;
+		return Users;
+	}
+	while (!file.eof()) {
+		UserDb User;
+		//cout << "Прочтение строки  " << endl;
+		file >> User.id >> User.name >> User.real_name >> User.IC >> User.year >> User.organizacia /*>> User.phone >> User.mail*/;
+		Users.push_back(User);
+	}
+	file.close();
+	return Users;
+}
+
+void bubbleSortByName(vector<UserDb>& users) {
+	int n = users.size();
+	for (int i = 0; i < n - 1; i++) {
+		for (int j = 0; j < n - i - 1; j++) {
+			if (users[j].name > users[j + 1].name) {
+				// обмен элементов
+				UserDb temp = users[j];
+				users[j] = users[j + 1];
+				users[j + 1] = temp;
+			}
+		}
+	}
+}
+
+
+// Серч по 1 параметру
+//vector<UserDb> searchUserByName(vector<UserDb> userSearch, string userMask) {
+//	vector<UserDb> result;
+//	for (auto user : userSearch) {
+//		if (user.name.find(userMask) != string::npos) {
+//			result.push_back(user);
+//		}
+//	}
+//	return result;
+//}
+
+// Поиск по Информационной системе
+vector<UserDb> searchUserByIC(vector<UserDb> userSearch) {
+	vector<UserDb> result;
+	int type;
+	string userMask;
+	cin >> type;
+	cout << "Введите Маску " << endl;
+	cin >> userMask;
+	switch (type)
+	{
+
+	case 1:
+		for (auto user : userSearch) {
+			if (user.name.find(userMask) != string::npos) {
+				result.push_back(user);
+			}
+		}
+		break;
+
+	case 2:
+		for (auto user : userSearch) {
+			if (user.IC.find(userMask) != string::npos) {
+				result.push_back(user);
+			}
+		}
+		break;
+
+
+	/*case 3:
+		for (auto user : userSearch) {
+			if (user.IC.find(userMask) != string::npos) {
+				result.push_back(user);
+			}
+		}*/
+		
+
+	}
+
+	return result;
+}
+int main() {
+
+	SetConsoleCP(1251);// ru 
+	SetConsoleOutputCP(1251); // ru
+	vector<UserDb> Users = readUsersFromFile("user3.txt");
+	int sw;
+	string name;
+	UserDb user;
+	string UserS;
+	vector<UserDb> UserF;
+	sw = 0;
+	UserDb newUser;
+	int countArray[4];
+	int SED_col;
+	int gisGmp;
+	int IPRA;
+	int MFC;
+	//string UniversitySearch;
+	if (Users.empty()) {
+		return 1;
+	}
+
+	// получение информации о консольном окне
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	HWND hcon = GetConsoleWindow();
+
+	// программная установка консольного шрифта для отображения русского текста
+	CONSOLE_FONT_INFO cfi;
+	GetCurrentConsoleFont(hConsole, false, &cfi);
+	COORD fs = GetConsoleFontSize(hConsole, cfi.nFont);
+	PCONSOLE_FONT_INFOEX ccf = new CONSOLE_FONT_INFOEX;
+	(*ccf).dwFontSize.X = 12;
+	(*ccf).dwFontSize.Y = 20;
+	(*ccf).nFont = 11;
+	(*ccf).cbSize = sizeof(CONSOLE_FONT_INFOEX);
+	ccf->FontWeight = 400;
+	lstrcpyW((*ccf).FaceName, L"Lucida Console");
+	(*ccf).FontFamily = FF_DONTCARE;
+	bool b = SetCurrentConsoleFontEx(hConsole, false, ccf);
+	fs = GetConsoleFontSize(hConsole, cfi.nFont);
+	//vector<UserDb> IDF = searchUserByIC(Users, UniversitySearch, type);
+	// установка кодировки 1251 для отображения русского текста
+	SetConsoleCP(1251);
+	SetConsoleOutputCP(1251);
+
+	int n = 5;			//кол-во пунктов меню
+	COORD position[5];
+	int punkt = 0;
+	vector<UserDb> IDF;
+
+	char names[5][25] = { "Ввод данных", "Поиск", "Просмотр ", "Диаграмма", "Выход" };
+	do
+	{
+		int xmax, ymax;
+
+		// получение параметров окна 
+		PCONSOLE_SCREEN_BUFFER_INFO pwi = new CONSOLE_SCREEN_BUFFER_INFO;
+		PWINDOWINFO pgwi = new WINDOWINFO;
+		GetConsoleScreenBufferInfo(hConsole, pwi);
+		GetWindowInfo(hcon, pgwi);
+		xmax = pwi->dwSize.X;
+		ymax = pwi->dwSize.Y;
+
+		int y0 = 7;
+		for (int i = 0; i < n; i++)
+		{
+			position[i].X = (xmax - strlen(names[i])) / 2;
+			position[i].Y = y0 + i;
+		}
+		SetConsoleTextAttribute(hConsole, BACKGROUND_GREEN); // цвет фона
+		system("cls");			// очистка окна
+		SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | BACKGROUND_GREEN); // цвет символов и цвет фона
+		char title[] = "БАЗА ДАННЫХ";
+		COORD pos;
+		pos.X = (xmax - strlen(title)) / 2;
+		pos.Y = 5;
+		SetConsoleCursorPosition(hConsole, pos);
+		puts(title);
+		for (int i = 0; i < 5; i++)
+		{
+			SetConsoleCursorPosition(hConsole, position[i]);
+			puts(names[i]);
+		}
+		SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_INTENSITY | BACKGROUND_GREEN);
+		SetConsoleCursorPosition(hConsole, position[punkt]);	// выделение текущего пункта ярким цветом
+		puts(names[punkt]);
+		unsigned char ch;
+		do
+		{
+			// обработка перемещения по меню клавишами со стрелками
+			ch = _getch();
+			if (ch == 224)
+			{
+				ch = _getch();
+				switch (ch)
+				{
+				case 72:
+					SetConsoleCursorPosition(hConsole, position[punkt]);
+					SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | BACKGROUND_GREEN);
+					puts(names[punkt]);
+					punkt--;
+					if (punkt < 0) punkt = 4;
+					SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_INTENSITY | BACKGROUND_GREEN);
+					SetConsoleCursorPosition(hConsole, position[punkt]);
+					puts(names[punkt]); break;
+				case 80:
+					SetConsoleCursorPosition(hConsole, position[punkt]);
+					SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | BACKGROUND_GREEN);
+					puts(names[punkt]);
+					punkt++;
+					if (punkt > 4) punkt = 0;
+					SetConsoleTextAttribute(hConsole, FOREGROUND_BLUE | FOREGROUND_INTENSITY | BACKGROUND_GREEN);
+					SetConsoleCursorPosition(hConsole, position[punkt]);
+					puts(names[punkt]); break;
+				}
+			}
+		} while (ch != 13);	// enter - выбор пункта меню
+		switch (punkt)
+		{
+		case 0:
+			cout << "Введите id: ";
+			cin >> newUser.id;
+			cout << "Введите Имя: ";
+			cin >> newUser.name;
+			cout << "Введите реальное имя: ";
+			cin >> newUser.real_name;
+			cout << "Введите год: ";
+			cin >> newUser.year;
+			cout << "Введите организацию: ";
+			cin >> newUser.organizacia;
+			Users.push_back(newUser);
+
+			writeUsersToFile(Users, "user4.txt");
+			// вызов функции
+
+
+
+
+			break;
+		case 1:
+
+			cout << "Введите По какому критерию хотите найти: " << endl << " 1 -По имени" << endl << " 2 -По системе" << endl;
+			IDF = searchUserByIC(Users/*, UniversitySearch, type*/);
+			cout << " Найдено " << IDF.size() << " Пользователей:" << endl;
+			bubbleSortByName(IDF);
+			displayUsers(IDF);
+			_getch();
+			break;
+		case 2:
+			//printUsers(Users); // вызов функции
+			displayUsers(Users);
+			break;
+		case 3:
+			SED_col = equal(Users,"СЭДО");
+			gisGmp = equal(Users, "ГисГМП");
+			IPRA = equal(Users, "ИПРА");
+			MFC = equal(Users, "МФЦ");
+			
+			countArray[0] = { SED_col };
+			countArray[1] = { gisGmp };
+			countArray[2] = { IPRA };
+			countArray[3] = { MFC };
+			bubbleSortByName(Users);
+			//cout << endl << SED_col << endl << gisGmp << endl << IPRA << endl << MFC;
+			//_getch();
+			diagramma(hConsole, hcon, pgwi, countArray);	// пример рисования диаграммы
+			
+
+			break;
+
+
+		}
+	} while (punkt != 4);
+	return 0;
+	}
